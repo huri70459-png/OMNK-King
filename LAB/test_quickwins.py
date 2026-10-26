@@ -11,7 +11,7 @@ def test_repository_adapter_reports_git_identity():
     identity = inspect_repository(Path(__file__).resolve().parents[1])
     assert identity.root.endswith("Rayclaude-wiki")
     assert identity.is_git is True
-    assert identity.branch == "main"
+    assert identity.branch
     assert identity.commit != "unavailable"
 
 

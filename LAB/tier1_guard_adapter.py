@@ -48,7 +48,8 @@ def inspect_browser_repair(root: Path, port: int, title: str, route: str = "/", 
     observed = RuntimeEvidence(project, _commit(root), port, route, title, 200, True)
     scope = ChangeContract(
         goal,
-        (), (), 0, 0, ("browser",),
+        ("tier1/api.py", "tier1/static/index.html"),
+        (), 3, 80, ("browser",),
     )
     return run_browser_repair(BrowserRepairInput(
         runtime_expected=contract,

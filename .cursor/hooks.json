@@ -1,11 +1,21 @@
 {
   "version": 1,
+  "failClosed": true,
   "hooks": {
-    "beforeSubmitPrompt": [
-      {"command": ".cursor/hooks/codex-memory-capture.ps1", "timeout": 10}
+    "preToolUse": [
+      {"matcher": "Write|Delete|Edit|StrReplace", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
     ],
-    "afterAgentResponse": [
-      {"command": ".cursor/hooks/codex-memory-capture.ps1", "timeout": 10}
+    "beforeShellExecution": [
+      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+    ],
+    "beforeMCPExecution": [
+      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+    ],
+    "sessionStart": [
+      {"command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+    ],
+    "stop": [
+      {"command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
     ]
   }
 }

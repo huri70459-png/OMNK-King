@@ -18,8 +18,8 @@ class ChangeContract:
     goal: str
     allowed_files: tuple[str, ...] = ()
     allowed_layers: tuple[str, ...] = ()
-    max_files: int = 20
-    max_changed_lines: int = 1000
+    max_files: int = 3
+    max_changed_lines: int = 80
     acceptance_tests: tuple[str, ...] = ()
     risk: str = "low"
 
@@ -131,6 +131,8 @@ def evaluate(contract: ChangeContract, changes: list[ChangedFile]) -> ScopeResul
 
     if not contract.goal.strip():
         violations.append("change contract has no goal")
+    if not contract.allowed_files:
+        violations.append("allowed file boundary is required")
     if len(changes) > contract.max_files:
         violations.append(f"file budget exceeded: {len(changes)} > {contract.max_files}")
     total_lines = sum(max(0, change.changed_lines) for change in changes)
@@ -138,7 +140,7 @@ def evaluate(contract: ChangeContract, changes: list[ChangedFile]) -> ScopeResul
         violations.append(f"line budget exceeded: {total_lines} > {contract.max_changed_lines}")
 
     for change in changes:
-        if contract.allowed_files and not _allowed(change.path, contract.allowed_files):
+        if not _allowed(change.path, contract.allowed_files):
             unexpected.append(change.path)
         if contract.allowed_layers and change.layer not in contract.allowed_layers:
             violations.append(f"layer outside boundary: {change.path}")
@@ -153,7 +155,10 @@ def evaluate(contract: ChangeContract, changes: list[ChangedFile]) -> ScopeResul
         warnings.append("no acceptance tests mapped to the change")
 
     if violations:
-        status = "BLOCKED" if any("destructive" in item or "budget" in item for item in violations) else "REVIEW"
+        status = "BLOCKED" if any(
+            token in item for item in violations
+            for token in ("destructive", "budget", "allowed file boundary")
+        ) else "REVIEW"
     elif warnings:
         status = "PARTIAL"
     else:

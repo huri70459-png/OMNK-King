@@ -105,21 +105,38 @@ def execute_sandboxed_write(
             before[relative] = b""
         targets[relative] = target
 
+    staging = Path(tempfile.mkdtemp(prefix="tier1-stage-", dir=str(base)))
+    staged: dict[str, Path] = {}
     try:
+        for relative in sorted(targets):
+            staged_path = staging / relative
+            staged_path.parent.mkdir(parents=True, exist_ok=True)
+            with staged_path.open("wb") as handle:
+                handle.write(requested[relative].encode("utf-8"))
+                handle.flush()
+                os.fsync(handle.fileno())
+            staged[relative] = staged_path
         for relative, target in targets.items():
             target.parent.mkdir(parents=True, exist_ok=True)
-            fd, temporary = tempfile.mkstemp(prefix=f".{target.name}.", dir=str(target.parent))
-            try:
-                with os.fdopen(fd, "wb") as handle:
-                    handle.write(requested[relative].encode("utf-8"))
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                os.replace(temporary, target)
-            finally:
-                if os.path.exists(temporary):
-                    os.unlink(temporary)
+            os.replace(staged[relative], target)
     except (OSError, UnicodeEncodeError) as exc:
-        return WriteResult("FAILED", reason=f"write failed: {exc}")
+        for relative, original in before.items():
+            target = targets[relative]
+            try:
+                if original:
+                    target.write_bytes(original)
+                elif target.exists():
+                    target.unlink()
+            except OSError:
+                return WriteResult("FAILED", reason=f"write failed and restore failed: {exc}")
+        return WriteResult("FAILED", reason=f"write failed; all files restored: {exc}")
+    finally:
+        for child in sorted(staging.rglob("*"), reverse=True):
+            if child.is_file():
+                child.unlink(missing_ok=True)
+            elif child.is_dir():
+                child.rmdir()
+        staging.rmdir()
 
     changed: list[str] = []
     for relative, target in targets.items():
