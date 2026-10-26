@@ -15,6 +15,7 @@ def test_canonical_json_is_stable_and_receipt_has_required_fields():
         assertions=(Assertion("page-up", "status", 200, 200, True),), signature="ed25519:x",
     )
     assert receipt.to_dict()["runner_id"] == "omnk-local"
+    assert receipt.to_dict()["observations"][0]["url"] == "/"
     assert sha256_bytes(left)
 
 

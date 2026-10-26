@@ -32,7 +32,7 @@ class Observation:
     values: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.kind, self.key: self.values}
+        return {"kind": self.kind, "url": self.key, **self.values}
 
 
 @dataclass(frozen=True)
