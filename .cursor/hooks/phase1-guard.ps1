@@ -47,7 +47,10 @@ if ($hookName -eq 'beforeShellExecution') {
 
 $path = [string]$event.file_path
 if ([string]::IsNullOrWhiteSpace($path)) { $path = [string]$event.path }
-if ([string]::IsNullOrWhiteSpace($path) -and $null -ne $event.tool_input) {
+if ($hookName -eq 'preToolUse' -and $null -ne $event.tool_input) {
+  $path = [string]$event.tool_input.file_path
+  if ([string]::IsNullOrWhiteSpace($path)) { $path = [string]$event.tool_input.path }
+} elseif ([string]::IsNullOrWhiteSpace($path) -and $null -ne $event.tool_input) {
   try {
     $toolInput = $event.tool_input | ConvertFrom-Json
     $path = [string]$toolInput.file_path

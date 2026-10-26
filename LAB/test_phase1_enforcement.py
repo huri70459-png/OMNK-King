@@ -156,7 +156,10 @@ def test_hostile_phase1_proof_preserves_dirty_worktree(tmp_path: Path):
     denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "cwd": str(tmp_path), "command": "echo x > out.txt"})))
     denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "cwd": str(tmp_path), "command": "python -c \"print(1)\""})))
     denied(run_hook(json.dumps({"hook_event_name": "beforeMCPExecution", "mcp_server_name": "filesystem", "tool_input": "{}"})))
-    denied(run_hook(json.dumps({"hook_event_name": "preToolUse", "tool_name": "Write", "file_path": str(tmp_path.parent / "outside.txt"), "tool_input": "{}"})))
+    denied(run_hook(json.dumps({"hook_event_name": "preToolUse", "tool_name": "Write", "tool_input": {"file_path": str(tmp_path.parent / "outside.txt")}})))
+    allowed = run_hook(json.dumps({"hook_event_name": "preToolUse", "tool_name": "Write", "tool_input": {"file_path": str(tmp_path / "inside.txt")}}))
+    assert allowed.returncode == 0
+    assert json.loads(allowed.stdout)["permission"] == "allow"
     denied(run_hook("not-json"))
     denied(run_hook("{}", env_updates={"TIER1_GUARD_SANDBOX_ROOT": ""}))
 
