@@ -19,6 +19,8 @@ def verify_receipt(receipt: Optional[Receipt], contract: Contract, current_ident
         return VerificationResult("REJECTED", "contract hash mismatch")
     if receipt.worktree_sha256 != current_worktree_sha256:
         return VerificationResult("REJECTED", "worktree hash mismatch")
+    if not receipt.contract_sha256 or contract.runner_public_key_sha256 != sha256_bytes(public_key):
+        return VerificationResult("REJECTED", "runner key is not pinned by contract")
     if current_identity is None or receipt.target != current_identity:
         return VerificationResult("REJECTED", "runtime identity mismatch")
     if not all(item.passed and item.observed == item.expected for item in receipt.assertions):

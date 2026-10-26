@@ -35,9 +35,10 @@ def test_probe_http_reads_status_and_body_hash(tmp_path: Path):
 def test_run_probe_signs_observed_receipt_and_does_not_leave_partial(tmp_path: Path):
     script = tmp_path / "fixture_server.py"
     script.write_text("""import http.server, socketserver, sys\nclass H(http.server.SimpleHTTPRequestHandler):\n    def log_message(self, *args): pass\nwith socketserver.TCPServer(('127.0.0.1', 0), H) as s:\n    print(f'PORT={s.server_address[1]}', flush=True)\n    s.serve_forever()\n""", encoding="utf-8")
-    contract = Contract((sys.executable, str(script)), str(tmp_path), ("fixture_server.py",), ({"id": "page-up", "op": "status", "expected": 200},))
+    keys = RunnerKeyStore(tmp_path / "keys")
+    contract = Contract((sys.executable, str(script)), str(tmp_path), ("fixture_server.py",), ({"id": "page-up", "op": "status", "expected": 200},), sha256_bytes(keys.public_key_bytes()))
     receipt_path = tmp_path / "receipt.json"
-    receipt = run_probe(contract, RunnerKeyStore(tmp_path / "keys"), receipt_path)
+    receipt = run_probe(contract, keys, receipt_path)
     assert receipt.assertions[0].passed is True
     assert receipt_path.exists()
     assert receipt.target.pid > 0

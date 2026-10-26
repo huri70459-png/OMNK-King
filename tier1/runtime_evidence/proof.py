@@ -20,8 +20,8 @@ def run_acceptance() -> bool:
     with tempfile.TemporaryDirectory(prefix="omnk-phase2-") as raw:
         root = Path(raw)
         fixture = _fixture(root)
-        contract = Contract((sys.executable, str(fixture)), str(root), (fixture.name,), ({"id": "page-up", "op": "status", "expected": 200},))
         keys = RunnerKeyStore(root / "runner-key")
+        contract = Contract((sys.executable, str(fixture)), str(root), (fixture.name,), ({"id": "page-up", "op": "status", "expected": 200},), sha256_bytes(keys.public_key_bytes()))
         receipt_path = root / "receipt.json"
         receipt = run_probe(contract, keys, receipt_path)
         current = verify_receipt(receipt, contract, receipt.target, worktree_digest(root, contract.files), keys.public_key_bytes())

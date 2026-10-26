@@ -8,9 +8,11 @@ class Contract:
     cwd: str
     files: tuple[str, ...]
     assertions: tuple[dict[str, Any], ...]
+    runner_public_key_sha256: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {"command": list(self.command), "cwd": self.cwd, "files": list(self.files), "assertions": list(self.assertions)}
+        return {"command": list(self.command), "cwd": self.cwd, "files": list(self.files), "assertions": list(self.assertions),
+                "runner_public_key_sha256": self.runner_public_key_sha256}
 
 
 @dataclass(frozen=True)

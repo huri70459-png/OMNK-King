@@ -1,5 +1,4 @@
 import json
-import re
 import subprocess
 import sys
 import tempfile
@@ -14,6 +13,11 @@ from .crypto import RunnerKeyStore
 from .hashutil import canonical_json, sha256_bytes, worktree_digest
 from .identity import identity_for_process
 from .model import Assertion, Contract, Observation, Receipt
+
+try:
+    import psutil
+except ImportError:  # pragma: no cover - dependency is declared for supported runs
+    psutil = None
 
 
 @dataclass(frozen=True)
@@ -37,15 +41,16 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _discover_port(output: bytes, process: subprocess.Popen[bytes]) -> int:
-    match = re.search(rb"(?:PORT=|port\s+)(\d+)", output, re.IGNORECASE)
-    if match:
-        return int(match.group(1))
-    # A fixed-port command is allowed when the contract supplies it.
-    for token in process.args:
-        if isinstance(token, str) and token.isdigit() and int(token) > 0:
-            return int(token)
-    raise RuntimeError("runner could not discover listening port")
+def _discover_port(process: subprocess.Popen[bytes]) -> int:
+    if psutil is None:
+        raise RuntimeError("runner requires psutil for PID-owned socket discovery")
+    for connection in psutil.net_connections(kind="tcp"):
+        if connection.pid != process.pid or connection.status != psutil.CONN_LISTEN or not connection.laddr:
+            continue
+        host = connection.laddr.ip if hasattr(connection.laddr, "ip") else connection.laddr[0]
+        if host in {"127.0.0.1", "::1", "0.0.0.0", "::"}:
+            return connection.laddr.port if hasattr(connection.laddr, "port") else connection.laddr[1]
+    raise RuntimeError("runner could not discover a listening port owned by spawned PID")
 
 
 def run_probe(contract: Contract, key_store: RunnerKeyStore, receipt_path: Path) -> Receipt:
@@ -63,10 +68,14 @@ def run_probe(contract: Contract, key_store: RunnerKeyStore, receipt_path: Path)
             output_file.flush()
             output_file.seek(0)
             output = output_file.read()
-            if b"Serving HTTP" in output or b"PORT=" in output or any(isinstance(x, str) and x.isdigit() and int(x) > 0 for x in process.args):
+            try:
+                port = _discover_port(process)
                 break
+            except RuntimeError:
+                pass
             time.sleep(0.05)
-        port = _discover_port(output, process)
+        else:
+            raise RuntimeError("runner timed out waiting for PID-owned listening socket")
         origin = f"http://127.0.0.1:{port}"
         observation = probe_http(origin)
         target = identity_for_process(tuple(process.args), str(Path(contract.cwd).resolve()), process.pid, port, origin).as_target()

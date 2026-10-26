@@ -2,6 +2,7 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from cryptography.exceptions import InvalidSignature
 
 
 class RunnerKeyStore:
@@ -36,5 +37,5 @@ def verify_signature(payload: bytes, signature: str, public_key: bytes) -> bool:
     try:
         Ed25519PublicKey.from_public_bytes(public_key).verify(bytes.fromhex(signature[8:]), payload)
         return True
-    except (ValueError, TypeError):
+    except (InvalidSignature, ValueError, TypeError):
         return False
