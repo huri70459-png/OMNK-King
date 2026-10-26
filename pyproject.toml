@@ -16,6 +16,7 @@ pdf = ["pypdf>=4"]
 
 [project.scripts]
 tier1 = "tier1.cli:main"
+phase2-proof = "tier1.runtime_evidence.proof:main"
 
 [tool.setuptools.packages.find]
 include = ["tier1*"]
