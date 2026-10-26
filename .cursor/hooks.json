@@ -1,15 +1,14 @@
 {
   "version": 1,
-  "failClosed": true,
   "hooks": {
     "preToolUse": [
-      {"matcher": "Write|Delete|Edit|StrReplace", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+      {"matcher": "Write|Delete", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10, "failClosed": true}
     ],
     "beforeShellExecution": [
-      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10, "failClosed": true}
     ],
     "beforeMCPExecution": [
-      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}
+      {"matcher": ".*", "command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10, "failClosed": true}
     ],
     "sessionStart": [
       {"command": ".cursor/hooks/phase1-guard.ps1", "timeout": 10}

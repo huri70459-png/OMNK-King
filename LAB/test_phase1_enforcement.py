@@ -66,10 +66,10 @@ def test_write_failure_restores_every_file(tmp_path: Path, monkeypatch):
 
 def test_hooks_are_fail_closed_and_gate_writes():
     hooks = json.loads(Path(".cursor/hooks.json").read_text(encoding="utf-8"))
-    assert hooks["failClosed"] is True
     names = set(hooks["hooks"])
     assert {"preToolUse", "beforeShellExecution", "beforeMCPExecution", "sessionStart", "stop"} <= names
-    assert any("Write|Delete|Edit|StrReplace" in str(item) for item in hooks["hooks"]["preToolUse"])
+    assert all(item["failClosed"] is True for name in ("preToolUse", "beforeShellExecution", "beforeMCPExecution") for item in hooks["hooks"][name])
+    assert any(item["matcher"] == "Write|Delete" for item in hooks["hooks"]["preToolUse"])
     assert Path(".cursor/hooks/phase1-guard.ps1").is_file()
 
 
@@ -147,11 +147,15 @@ def test_hostile_phase1_proof_preserves_dirty_worktree(tmp_path: Path):
             input=payload, text=True, capture_output=True, env=env,
         )
 
-    assert run_hook(json.dumps({"hook": "beforeShellExecution", "cwd": str(tmp_path), "command": "echo x > out.txt"})).returncode != 0
-    assert run_hook(json.dumps({"hook": "beforeShellExecution", "cwd": str(tmp_path), "command": "python -c \"print(1)\""})).returncode != 0
-    assert run_hook(json.dumps({"hook": "beforeMCPExecution", "server": "filesystem"})).returncode != 0
-    assert run_hook("not-json").returncode != 0
-    assert run_hook("{}", env_updates={"TIER1_GUARD_SANDBOX_ROOT": ""}).returncode != 0
+    def denied(result):
+        assert result.returncode == 2
+        assert json.loads(result.stdout)["permission"] == "deny"
+
+    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "tool_input": {"cwd": str(tmp_path), "command": "echo x > out.txt"}})))
+    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "tool_input": {"cwd": str(tmp_path), "command": "python -c \"print(1)\""}})))
+    denied(run_hook(json.dumps({"hook_event_name": "beforeMCPExecution", "tool_input": {"server": "filesystem"}})))
+    denied(run_hook("not-json"))
+    denied(run_hook("{}", env_updates={"TIER1_GUARD_SANDBOX_ROOT": ""}))
 
     after_status = subprocess.run(
         ["git", "status", "--short"], cwd=repo, check=True, capture_output=True, text=True
