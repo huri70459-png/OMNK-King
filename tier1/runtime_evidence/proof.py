@@ -42,11 +42,10 @@ def run_acceptance() -> bool:
 
 
 def main() -> int:
-    if run_acceptance():
-        print("phase2 proof: VERIFIED")
-        return 0
-    print("phase2 proof: REJECTED", file=sys.stderr)
-    return 1
+    # The repository does not contain the target notebook app or a runner-owned
+    # browser journey. A fixture-only result must never be promoted to Phase 2.
+    print("phase2 proof: NOT_OBSERVED (real app/browser target unavailable)")
+    return 2
 
 
 if __name__ == "__main__":

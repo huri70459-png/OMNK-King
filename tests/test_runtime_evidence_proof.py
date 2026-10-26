@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 
-def test_phase2_proof_command_passes_all_acceptance_cases():
+def test_phase2_proof_fails_closed_without_real_app_and_browser_target():
     result = subprocess.run([sys.executable, "-m", "tier1.runtime_evidence.proof"], capture_output=True, text=True, timeout=20)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "phase2 proof: VERIFIED" in result.stdout
+    assert result.returncode == 2
+    assert "NOT_OBSERVED" in result.stdout

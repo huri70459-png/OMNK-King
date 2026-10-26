@@ -103,4 +103,4 @@ app. Stop the database with `docker compose -f docker-compose.local.yml down`;
 the named volume preserves local data until it is explicitly removed.
 # Phase 2 runtime evidence
 
-Run `python -m tier1.runtime_evidence.proof` (or `phase2-proof` after installing the project) to exercise the local signed runtime-evidence proof. It observes a runner-owned process and HTTP page, rejects caller-authored or forged evidence, rejects a wrong target, and marks a receipt stale after a named file changes. This is local runtime evidence only; it does not prove Hermes enforcement, Tier-1 status, or production behavior.
+Run `python -m tier1.runtime_evidence.proof` (or `phase2-proof` after installing the project). In this checkout it intentionally returns `NOT_OBSERVED` because the real notebook app and runner-owned browser journey are not present. The lower-level package tests exercise local signed process/HTTP records, but those fixtures are not Phase 2 completion evidence and do not prove Hermes enforcement, Tier-1 status, or production behavior.
