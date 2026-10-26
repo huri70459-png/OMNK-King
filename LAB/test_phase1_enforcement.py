@@ -67,7 +67,9 @@ def test_write_failure_restores_every_file(tmp_path: Path, monkeypatch):
 def test_hooks_are_fail_closed_and_gate_writes():
     hooks = json.loads(Path(".cursor/hooks.json").read_text(encoding="utf-8"))
     names = set(hooks["hooks"])
-    assert {"preToolUse", "beforeShellExecution", "beforeMCPExecution", "sessionStart", "stop"} <= names
+    assert {"preToolUse", "beforeShellExecution", "beforeMCPExecution"} <= names
+    assert "sessionStart" not in names
+    assert "stop" not in names
     assert all(item["failClosed"] is True for name in ("preToolUse", "beforeShellExecution", "beforeMCPExecution") for item in hooks["hooks"][name])
     assert any(item["matcher"] == "Write|Delete" for item in hooks["hooks"]["preToolUse"])
     assert Path(".cursor/hooks/phase1-guard.ps1").is_file()
@@ -151,9 +153,10 @@ def test_hostile_phase1_proof_preserves_dirty_worktree(tmp_path: Path):
         assert result.returncode == 2
         assert json.loads(result.stdout)["permission"] == "deny"
 
-    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "tool_input": {"cwd": str(tmp_path), "command": "echo x > out.txt"}})))
-    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "tool_input": {"cwd": str(tmp_path), "command": "python -c \"print(1)\""}})))
-    denied(run_hook(json.dumps({"hook_event_name": "beforeMCPExecution", "tool_input": {"server": "filesystem"}})))
+    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "cwd": str(tmp_path), "command": "echo x > out.txt"})))
+    denied(run_hook(json.dumps({"hook_event_name": "beforeShellExecution", "cwd": str(tmp_path), "command": "python -c \"print(1)\""})))
+    denied(run_hook(json.dumps({"hook_event_name": "beforeMCPExecution", "mcp_server_name": "filesystem", "tool_input": "{}"})))
+    denied(run_hook(json.dumps({"hook_event_name": "preToolUse", "tool_name": "Write", "file_path": str(tmp_path.parent / "outside.txt"), "tool_input": "{}"})))
     denied(run_hook("not-json"))
     denied(run_hook("{}", env_updates={"TIER1_GUARD_SANDBOX_ROOT": ""}))
 
